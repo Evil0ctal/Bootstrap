@@ -65,8 +65,10 @@ jobs:
           sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
           # keep only xpc/private.h (Apple's private API decls); SDK provides everything else
           find basebin/common/xpc -mindepth 1 ! -name 'private.h' -delete
-          # xpc_private.h self-includes itself (header-guarded into nothing); redirect to private.h
-          sed -i.bak 's|#include <xpc_private.h>|#include <xpc/private.h>|' basebin/common/xpc_private.h
+          # xpc_private.h self-includes itself (header-guarded into nothing); redirect to private.h.
+          # Also pull bsm headers so audit_token_to_pid etc. are visible everywhere we -include this.
+          sed -i.bak 's|#include <xpc_private.h>|#include <xpc/private.h>\
+#include <bsm/libbsm.h>|' basebin/common/xpc_private.h
           # ensure consumers of jbclient.h see private xpc decls
           H=basebin/common/jbclient.h
           grep -q xpc_private.h "$H" || awk '1; /#include <xpc\/xpc.h>/{print "#include <xpc_private.h>"}' "$H" > "$H.new" && mv "$H.new" "$H"
