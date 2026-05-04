@@ -37,10 +37,12 @@ jobs:
           git clone --depth 1 https://github.com/jmpews/Dobby Dobby-master
           cd Dobby-master
           cmake -B build/iphoneos/universal -G "Unix Makefiles" \
-            -DCMAKE_TOOLCHAIN_FILE=cmake/ios.toolchain.cmake \
-            -DPLATFORM=OS64 \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;arm64e" \
             -DDOBBY_GENERATE_SHARED=OFF \
-            -DCMAKE_OSX_ARCHITECTURES="arm64;arm64e"
+            -DDOBBY_DEBUG=OFF
           cmake --build build/iphoneos/universal --config Release
           ls -la build/iphoneos/universal/libdobby.a
 
