@@ -37,6 +37,8 @@ jobs:
 
       - name: Install iPhoneOS SDK via theos install-sdk
         if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: $THEOS/bin/install-sdk latest
 
       - name: Download prebuilt Dobby (libdobby.a symlink target)
