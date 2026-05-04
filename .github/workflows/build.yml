@@ -17,6 +17,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Use Xcode 14.3.1
+        run: sudo xcode-select -s /Applications/Xcode_14.3.1.app
+
       - name: Install host tools
         run: brew install ldid
 
