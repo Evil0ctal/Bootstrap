@@ -26,6 +26,9 @@ jobs:
         with:
           packages: ldid findutils sed coreutils make
 
+      - name: Install libplist headers (basebin/ldid build dep)
+        run: brew install libplist
+
       - name: Install Theos + iPhoneOS16.5 SDK
         run: |
           set -x
