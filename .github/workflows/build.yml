@@ -77,9 +77,10 @@ jobs:
           sed -i.bak 's|^make |gmake |' build.sh
           sed -i.bak 's|^make$|gmake|' build.sh
 
-      - name: Inject theos vendor lib paths into Bootstrap_XCODEFLAGS
+      - name: Inject theos vendor lib + Swift toolchain paths into Bootstrap_XCODEFLAGS
         run: |
-          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = OTHER_LDFLAGS="-L$(THEOS)/vendor/lib/iphone/roothide -L$(THEOS)/vendor/lib" |' Makefile
+          SWIFT_LIB="$(xcrun -find swift | xargs dirname)/../lib/swift/iphoneos"
+          sed -i.bak "s|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = OTHER_LDFLAGS=\"-L\$(THEOS)/vendor/lib/iphone/roothide -L\$(THEOS)/vendor/lib -L${SWIFT_LIB}\" |" Makefile
           grep Bootstrap_XCODEFLAGS Makefile
 
       - name: Build
