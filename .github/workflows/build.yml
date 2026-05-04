@@ -8,41 +8,39 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-14
     timeout-minutes: 45
-    env:
-      THEOS: /Users/runner/theos
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install host tools
-        run: brew install ldid xz
-
-      - name: Cache Theos + SDK + Dobby
-        id: cache
-        uses: actions/cache@v4
+      - name: Install Procursus packages (ldid + GNU coreutils)
+        uses: dhinakg/procursus-action@main
         with:
-          path: |
-            /Users/runner/theos
-            /Users/runner/work/Bootstrap/Dobby-master
-          key: theos-dobby-${{ runner.os }}-v3
+          packages: ldid findutils sed coreutils make
 
-      - name: Install Theos (roothide)
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: git clone --recursive https://github.com/roothide/theos "$THEOS"
-
-      - name: Install iPhoneOS SDK via theos install-sdk
-        if: steps.cache.outputs.cache-hit != 'true'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: $THEOS/bin/install-sdk latest
+      - name: Install Theos + iPhoneOS16.5 SDK
+        run: |
+          set -x
+          export THEOS="$HOME/theos"
+          mkdir -p "$THEOS"
+          curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos -o install-theos.sh
+          gsed -E "/^\s*get_theos\s*$/,+1 s/^(\s*)(get_sdks)\s*$/\1mkdir -p \${THEOS}\/sdks\n\1touch \${THEOS}\/sdks\/sdk\n\1\2/g" -i install-theos.sh
+          bash install-theos.sh
+          curl -L https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
+          gunzip "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
+          tar -xf "$THEOS/sdks/iPhoneOS16.5.sdk.tar" -C "$THEOS/sdks"
+          rm "$THEOS/sdks/iPhoneOS16.5.sdk.tar"
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
 
       - name: Download prebuilt Dobby (libdobby.a symlink target)
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           DOBBY_DIR="$GITHUB_WORKSPACE/../Dobby-master"
           mkdir -p "$DOBBY_DIR"
@@ -50,53 +48,12 @@ jobs:
             | tar -xz -C "$DOBBY_DIR"
           ls -la "$DOBBY_DIR/build/iphoneos/universal/libdobby.a"
 
-      - name: Merge missing private headers + frameworks into Xcode SDK
+      - name: Drop Xcode SDK xpc shim (let basebin's bundled headers take over)
         run: |
-          XCSDK="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
-          THEOS_SDK=$(ls -d "$THEOS"/sdks/iPhoneOS*.sdk 2>/dev/null | tail -n1)
-          if [ -n "$THEOS_SDK" ]; then
-            sudo cp -aRn "$THEOS_SDK/System/Library/PrivateFrameworks/." "$XCSDK/System/Library/PrivateFrameworks/" || true
-            sudo cp -aRn "$THEOS_SDK/usr/include/." "$XCSDK/usr/include/" || true
-            sudo cp -aRn "$THEOS_SDK/usr/lib/." "$XCSDK/usr/lib/" || true
-            echo "merged from $THEOS_SDK"
-          fi
-
-      - name: Patch sources for iOS17 SDK / Xcode 15
-        run: |
-          sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
-          # keep only xpc/private.h (Apple's private API decls); SDK provides everything else
-          find basebin/common/xpc -mindepth 1 ! -name 'private.h' -delete
-          # rewrite xpc_private.h: pull basebin's private.h + extra decls used by basebin.
-          # bsm/libbsm.h is not in iOS SDK — inline the audit_token_to_pid macro.
-          cat > basebin/common/xpc_private.h <<'EOF'
-          #ifndef ROOTHIDE_XPC_PRIVATE_H
-          #define ROOTHIDE_XPC_PRIVATE_H
-          #include <xpc/xpc.h>
-          #include <xpc/private.h>
-          #include <mach/mach.h>
-          #include <bsm/audit.h>
-          #ifndef audit_token_to_pid
-          #define audit_token_to_pid(atoken) ((atoken).val[5])
-          #endif
-          char *xpc_strerror (int);
-          extern xpc_object_t xpc_mach_send_create(mach_port_t);
-          extern mach_port_t xpc_mach_send_get_right(xpc_object_t);
-          extern mach_port_t xpc_mach_send_copy_right(xpc_object_t);
-          extern xpc_object_t xpc_mach_recv_create(mach_port_t);
-          extern mach_port_t xpc_mach_recv_extract_right(xpc_object_t);
-          #endif
-          EOF
-          sed -i.bak 's/^          //' basebin/common/xpc_private.h
-          # ensure consumers of jbclient.h see private xpc decls
-          H=basebin/common/jbclient.h
-          grep -q xpc_private.h "$H" || awk '1; /#include <xpc\/xpc.h>/{print "#include <xpc_private.h>"}' "$H" > "$H.new" && mv "$H.new" "$H"
-          F=basebin/appatch/realstore.cpp
-          grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
+          XCSDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          sudo rm -rf "$XCSDK/usr/include/xpc" "$XCSDK/usr/include/xpc.modulemap"
 
       - name: Build
-        env:
-          ADDITIONAL_CFLAGS: "-Wno-error=module-import-in-extern-c -include xpc_private.h"
-          ADDITIONAL_CCFLAGS: "-Wno-error=module-import-in-extern-c -include xpc_private.h"
         run: ./build.sh
 
       - name: Upload .tipa
