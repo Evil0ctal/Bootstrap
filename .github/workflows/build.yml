@@ -77,14 +77,11 @@ jobs:
           sed -i.bak 's|^make |gmake |' build.sh
           sed -i.bak 's|^make$|gmake|' build.sh
 
-      - name: Inject theos + Swift lib paths into Bootstrap_XCODEFLAGS
+      - name: Inject theos vendor lib paths into Bootstrap_XCODEFLAGS
         run: |
-          SDK_SWIFT="$(xcrun --sdk iphoneos --show-sdk-path)/usr/lib/swift"
-          TC_SWIFT="$(xcrun -find swift | xargs dirname)/../lib/swift/iphoneos"
-          sed -i.bak "s|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = OTHER_LDFLAGS=\"-L\$(THEOS)/vendor/lib/iphone/roothide -L\$(THEOS)/vendor/lib -L${SDK_SWIFT} -L${TC_SWIFT}\" |" Makefile
+          # use $(inherited) so Xcode's auto-Swift LIBRARY_SEARCH_PATHS is preserved
+          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = LIBRARY_SEARCH_PATHS="$(inherited) $(THEOS)/vendor/lib/iphone/roothide $(THEOS)/vendor/lib" |' Makefile
           grep Bootstrap_XCODEFLAGS Makefile
-          ls "$SDK_SWIFT/libswiftUIKit.tbd" 2>&1 || echo "(no SDK swiftUIKit.tbd)"
-          ls "$TC_SWIFT/libswiftUIKit.dylib" 2>&1 || echo "(no toolchain swiftUIKit.dylib)"
 
       - name: Build
         env:
