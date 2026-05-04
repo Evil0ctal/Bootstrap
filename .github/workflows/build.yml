@@ -50,14 +50,15 @@ jobs:
             | tar -xz -C "$DOBBY_DIR"
           ls -la "$DOBBY_DIR/build/iphoneos/universal/libdobby.a"
 
-      - name: Borrow private frameworks into Xcode SDK
+      - name: Merge missing private headers + frameworks into Xcode SDK
         run: |
-          XCSDK_PF="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/PrivateFrameworks"
-          THEOS_SDK_DIR="$THEOS/sdks"
-          THEOS_PF=$(ls -d "$THEOS_SDK_DIR"/iPhoneOS*.sdk/System/Library/PrivateFrameworks 2>/dev/null | tail -n1)
-          if [ -n "$THEOS_PF" ] && [ -d "$THEOS_PF" ]; then
-            sudo cp -aRn "$THEOS_PF"/. "$XCSDK_PF/"
-            echo "merged from $THEOS_PF"
+          XCSDK="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
+          THEOS_SDK=$(ls -d "$THEOS"/sdks/iPhoneOS*.sdk 2>/dev/null | tail -n1)
+          if [ -n "$THEOS_SDK" ]; then
+            sudo cp -aRn "$THEOS_SDK/System/Library/PrivateFrameworks/." "$XCSDK/System/Library/PrivateFrameworks/" || true
+            sudo cp -aRn "$THEOS_SDK/usr/include/." "$XCSDK/usr/include/" || true
+            sudo cp -aRn "$THEOS_SDK/usr/lib/." "$XCSDK/usr/lib/" || true
+            echo "merged from $THEOS_SDK"
           fi
 
       - name: Patch sources for iOS17 SDK / Xcode 15
