@@ -90,7 +90,9 @@ jobs:
         env:
           ADDITIONAL_CFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
           ADDITIONAL_CCFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
-        run: ./build.sh
+        run: |
+          unset LIBRARY_PATH CPATH
+          ./build.sh
 
       - name: Upload .tipa
         uses: actions/upload-artifact@v4
