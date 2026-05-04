@@ -79,7 +79,8 @@ jobs:
 
       - name: Inject theos vendor lib paths into Bootstrap_XCODEFLAGS
         run: |
-          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = LIBRARY_SEARCH_PATHS="$(inherited) $(PROJECT_DIR) $(PROJECT_DIR)/basebin/common/lib $(PROJECT_DIR)/basebin/kexploit/kexploit-libs $(THEOS)/vendor/lib/iphone/roothide $(THEOS)/vendor/lib" |' Makefile
+          # add -L paths via OTHER_LDFLAGS so project's LIBRARY_SEARCH_PATHS stays intact
+          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = OTHER_LDFLAGS="$(inherited) -L$(THEOS)/vendor/lib/iphone/roothide -L$(THEOS)/vendor/lib" |' Makefile
           grep Bootstrap_XCODEFLAGS Makefile
 
       - name: Build
