@@ -26,6 +26,11 @@ jobs:
       - name: Drop legacy xpc modulemap (SDK already provides it on iOS17+)
         run: rm -f basebin/common/xpc/module.modulemap
 
+      - name: Add missing cassert include (no longer transitively pulled on iOS17 sdk)
+        run: |
+          F=basebin/appatch/realstore.cpp
+          grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
+
       - name: Cache Theos + iOS SDKs
         id: cache-theos
         uses: actions/cache@v4
