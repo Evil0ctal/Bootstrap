@@ -12,72 +12,61 @@ jobs:
   build:
     runs-on: macos-14
     timeout-minutes: 45
+    env:
+      THEOS: /Users/runner/theos
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Install host tools
-        run: brew install ldid
+        run: brew install ldid xz
 
-      - name: Use classic ld for dyldhook (tbd-v2 stub)
-        run: sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
+      - name: Cache Theos + SDK + Dobby
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /Users/runner/theos
+            /Users/runner/work/Bootstrap/Dobby-master
+          key: theos-dobby-${{ runner.os }}-v3
 
-      - name: Drop legacy xpc shim (SDK already provides full XPC headers on iOS17+)
-        run: rm -rf basebin/common/xpc
+      - name: Install Theos (roothide)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: git clone --recursive https://github.com/roothide/theos "$THEOS"
 
-      - name: Add missing cassert include (no longer transitively pulled on iOS17 sdk)
+      - name: Install iPhoneOS SDK via theos install-sdk
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: $THEOS/bin/install-sdk latest
+
+      - name: Download prebuilt Dobby (libdobby.a symlink target)
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          DOBBY_DIR="$GITHUB_WORKSPACE/../Dobby-master"
+          mkdir -p "$DOBBY_DIR"
+          curl -fsSL https://github.com/jmpews/Dobby/releases/download/latest/dobby-iphoneos-all.tar.gz \
+            | tar -xz -C "$DOBBY_DIR"
+          ls -la "$DOBBY_DIR/build/iphoneos/universal/libdobby.a"
+
+      - name: Borrow private frameworks into Xcode SDK
+        run: |
+          XCSDK_PF="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/PrivateFrameworks"
+          THEOS_SDK_DIR="$THEOS/sdks"
+          THEOS_PF=$(ls -d "$THEOS_SDK_DIR"/iPhoneOS*.sdk/System/Library/PrivateFrameworks 2>/dev/null | tail -n1)
+          if [ -n "$THEOS_PF" ] && [ -d "$THEOS_PF" ]; then
+            sudo cp -aRn "$THEOS_PF"/. "$XCSDK_PF/"
+            echo "merged from $THEOS_PF"
+          fi
+
+      - name: Patch sources for iOS17 SDK / Xcode 15
+        run: |
+          sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
+          rm -rf basebin/common/xpc
           F=basebin/appatch/realstore.cpp
           grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
 
-      - name: Build Dobby (roothide fork) alongside repo
-        run: |
-          cd "$GITHUB_WORKSPACE/.."
-          git clone --depth 1 https://github.com/roothide/Dobby Dobby-master
-          cd Dobby-master
-          for ARCH in arm64 arm64e; do
-            cmake -B build/$ARCH -G "Unix Makefiles" \
-              -DCMAKE_SYSTEM_NAME=iOS \
-              -DCMAKE_SYSTEM_PROCESSOR=arm64 \
-              -DCMAKE_OSX_SYSROOT=iphoneos \
-              -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
-              -DCMAKE_OSX_ARCHITECTURES=$ARCH \
-              -DDOBBY_GENERATE_SHARED=OFF \
-              -DDOBBY_DEBUG=OFF
-            cmake --build build/$ARCH --config Release
-          done
-          mkdir -p build/iphoneos/universal
-          lipo -create build/arm64/libdobby.a build/arm64e/libdobby.a -output build/iphoneos/universal/libdobby.a
-          lipo -info build/iphoneos/universal/libdobby.a
-
-      - name: Cache Theos + iOS SDKs
-        id: cache-theos
-        uses: actions/cache@v4
-        with:
-          path: ~/theos
-          key: theos-roothide-${{ runner.os }}-ios16.5-v2
-
-      - name: Install Theos + iPhoneOS16.5 SDK
-        if: steps.cache-theos.outputs.cache-hit != 'true'
-        run: |
-          git clone --recursive https://github.com/roothide/theos "$HOME/theos"
-          mkdir -p "$HOME/theos/sdks"
-          cd "$HOME/theos/sdks"
-          git clone --depth 1 https://github.com/theos/sdks.git tmp
-          mv tmp/iPhoneOS16.5.sdk .
-          rm -rf tmp
-
-      - name: Merge private frameworks into Xcode SDK
-        run: |
-          XCSDK_PF="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/PrivateFrameworks"
-          THEOS_PF="$HOME/theos/sdks/iPhoneOS16.5.sdk/System/Library/PrivateFrameworks"
-          sudo cp -aRn "$THEOS_PF"/. "$XCSDK_PF/"
-          ls "$XCSDK_PF" | grep -c MobileContainerManager
-
       - name: Build
         env:
-          THEOS: /Users/runner/theos
           ADDITIONAL_CFLAGS: -Wno-error=module-import-in-extern-c
           ADDITIONAL_CCFLAGS: -Wno-error=module-import-in-extern-c
         run: ./build.sh
