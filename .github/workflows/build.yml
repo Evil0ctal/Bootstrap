@@ -43,6 +43,14 @@ jobs:
           mv tmp/iPhoneOS16.5.sdk .
           rm -rf tmp
 
+      - name: Pin Xcode iPhoneOS SDK to 16.5 (private frameworks present, no xpc modulemap conflict)
+        run: |
+          XCSDK="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs"
+          sudo mv "$XCSDK"/iPhoneOS*.sdk /tmp/ 2>/dev/null || true
+          sudo ln -sf "$HOME/theos/sdks/iPhoneOS16.5.sdk" "$XCSDK/iPhoneOS.sdk"
+          sudo ln -sf "$HOME/theos/sdks/iPhoneOS16.5.sdk" "$XCSDK/iPhoneOS16.5.sdk"
+          ls -la "$XCSDK"
+
       - name: Build
         env:
           THEOS: /Users/runner/theos
