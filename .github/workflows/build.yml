@@ -30,14 +30,14 @@ jobs:
           path: ~/theos
           key: theos-roothide-${{ runner.os }}-v1
 
-      - name: Install Theos + iOS SDKs
+      - name: Install Theos + iPhoneOS16.5 SDK
         if: steps.cache-theos.outputs.cache-hit != 'true'
         run: |
           git clone --recursive https://github.com/roothide/theos "$HOME/theos"
           mkdir -p "$HOME/theos/sdks"
           cd "$HOME/theos/sdks"
           git clone --depth 1 https://github.com/theos/sdks.git tmp
-          mv tmp/iPhoneOS*.sdk .
+          mv tmp/iPhoneOS16.5.sdk .
           rm -rf tmp
 
       - name: Build
