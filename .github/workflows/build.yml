@@ -49,7 +49,6 @@ jobs:
           mkdir -p "$DOBBY_DIR"
           curl -fsSL https://github.com/jmpews/Dobby/releases/download/latest/dobby-iphoneos-all.tar.gz \
             | tar -xz -C "$DOBBY_DIR"
-          ls -la "$DOBBY_DIR/build/iphoneos/universal/libdobby.a"
 
       - name: Drop Xcode SDK xpc shim (let basebin's bundled headers take over)
         run: |
@@ -72,24 +71,27 @@ jobs:
           F=basebin/appatch/realstore.cpp
           grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
 
-      - name: Use gmake (procursus) for theos xcodeproj.mk
-        run: |
-          sed -i.bak 's|^make |gmake |' build.sh
-          sed -i.bak 's|^make$|gmake|' build.sh
-
-      - name: Add theos vendor lib paths to project.pbxproj LIBRARY_SEARCH_PATHS
-        run: |
-          # extend in-tree paths so Xcode auto-Swift logic remains untouched
-          gsed -i 's|"$(PROJECT_DIR)/basebin/kexploit/kexploit-libs",|"$(PROJECT_DIR)/basebin/kexploit/kexploit-libs",\n\t\t\t\t\t"\$(THEOS)/vendor/lib/iphone/roothide",\n\t\t\t\t\t"\$(THEOS)/vendor/lib",|' Bootstrap.xcodeproj/project.pbxproj
-          grep -A 8 "LIBRARY_SEARCH_PATHS" Bootstrap.xcodeproj/project.pbxproj | head -20
-
-      - name: Build
+      - name: Build basebin (only)
         env:
           ADDITIONAL_CFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
           ADDITIONAL_CCFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
         run: |
-          unset LIBRARY_PATH CPATH
+          cd basebin
           ./build.sh
+          ls -la .build/
+
+      - name: Repackage upstream Bootstrap.tipa with patched basebin
+        run: |
+          mkdir -p packages staging
+          curl -fsSL https://github.com/roothide/Bootstrap/releases/download/2.2/Bootstrap.tipa -o staging/orig.tipa
+          cd staging && unzip -q orig.tipa && rm orig.tipa
+          rm -rf Payload/Bootstrap.app/basebin
+          cp -a ../basebin/.build Payload/Bootstrap.app/basebin
+          cp -f ../basebin/entitlements/executables/*.strict.extra \
+                Payload/Bootstrap.app/basebin/entitlements/executables/ 2>/dev/null || true
+          zip -qry ../packages/Bootstrap.tipa Payload
+          cd ..
+          ls -la packages/Bootstrap.tipa
 
       - name: Upload .tipa
         uses: actions/upload-artifact@v4
