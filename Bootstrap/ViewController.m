@@ -406,6 +406,22 @@ void tweaEnableAction(BOOL enable)
     }
 }
 
+void strictDaemonSandboxAction(BOOL enable)
+{
+    if(!isBootstrapInstalled()) return;
+
+    strictDaemonSandboxSetEnabled(enable);
+
+    if(isSystemBootstrapped() && launchctl_support()) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:Localized(@"Userspace Reboot Required") message:Localized(@"A userspace reboot is neccessary to apply the changes. Do you want to do it now?") preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:Localized(@"Reboot Later") style:UIAlertActionStyleCancel handler:nil]];
+        [alert addAction:[UIAlertAction actionWithTitle:Localized(@"Reboot Now") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            spawn_bootstrap_binary((char*[]){"/usr/bin/launchctl","reboot","userspace",NULL}, nil, nil);
+        }]];
+        [AppDelegate showAlert:alert];
+    }
+}
+
 void URLSchemesToggle(BOOL enable)
 {
     if(enable) {

@@ -17,4 +17,7 @@ bool isSystemBootstrapped();
 
 bool checkBootstrapVersion();
 
+BOOL strictDaemonSandboxEnabled(void);
+void strictDaemonSandboxSetEnabled(BOOL enabled);
+
 #endif /* bootstrap_h */

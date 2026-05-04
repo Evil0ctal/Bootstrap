@@ -6,3 +6,5 @@ packages/
 /Bootstrap/basebin
 /Bootstrap.xcodeproj/project.xcworkspace/xcuserdata
 /sandbox-profiles
+/docs/
+/device-test/

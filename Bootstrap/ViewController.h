@@ -9,6 +9,7 @@ void rebuildappsAction();
 void reinstallPackageManager();
 void rebuildIconCacheAction();
 void tweaEnableAction(BOOL enable);
+void strictDaemonSandboxAction(BOOL enable);
 BOOL opensshAction(BOOL enable);
 void bootstrapAction();
 void unbootstrapAction();

@@ -21,6 +21,7 @@ struct OptionsView: View {
     @StateObject var allowURLSchemes = toggleState(state: isBootstrapInstalled() && FileManager.default.fileExists(atPath: jbroot("/var/mobile/.allow_url_schemes")))
     @StateObject var opensshStatus = toggleState(state: updateOpensshStatus(false))
     @StateObject var allCTBugAppsHidden = toggleState(state: isAllCTBugAppsHidden())
+    @StateObject var strictDaemonSandbox = toggleState(state: strictDaemonSandboxEnabled())
     
     @Binding var colorScheme: Int
     
@@ -97,6 +98,19 @@ struct OptionsView: View {
                                             allowURLSchemes.state = newStatus
                                         }
                                     }
+                                }
+
+                                if isBootstrapInstalled() {
+                                    Toggle(isOn: Binding(get: {strictDaemonSandbox.state}, set: {
+                                        strictDaemonSandbox.state = $0
+                                        strictDaemonSandboxAction($0)
+                                    }), label: {
+                                        Label(
+                                            title: { Text("Strict Daemon Sandbox") },
+                                            icon: { Image(systemName: "lock.shield") }
+                                        )
+                                    })
+                                    .disabled(!isSystemBootstrapped())
                                 }
                                 
                                 Toggle(isOn: Binding(get: {opensshStatus.state}, set: {

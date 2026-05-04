@@ -651,12 +651,25 @@ bool isSystemBootstrapped()
 bool checkBootstrapVersion()
 {
     if(!isBootstrapInstalled()) return false;
-    
+
     NSDictionary* bootinfo = [NSDictionary dictionaryWithContentsOfFile:jbroot(@"/basebin/.bootinfo.plist")];
     if(!bootinfo) return false;
-    
+
     NSString* bootversion = bootinfo[@"bootversion"];
     if(!bootversion) return false;
-    
+
     return [bootversion isEqualToString:NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"]];
+}
+
+BOOL strictDaemonSandboxEnabled(void)
+{
+    //jbroot() asserts when not installed; guard so Settings can render pre-bootstrap
+    if (!isBootstrapInstalled()) return NO;
+    return roothide_config_get_strict_daemon_sandbox() ? YES : NO;
+}
+
+void strictDaemonSandboxSetEnabled(BOOL enabled)
+{
+    if (!isBootstrapInstalled()) return;
+    roothide_config_set_strict_daemon_sandbox(enabled ? true : false);
 }
