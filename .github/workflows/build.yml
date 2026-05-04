@@ -76,7 +76,11 @@ jobs:
         run: |
           sed -i.bak 's|^make |gmake |' build.sh
           sed -i.bak 's|^make$|gmake|' build.sh
-          cat build.sh
+
+      - name: Inject theos vendor lib paths into Bootstrap_XCODEFLAGS
+        run: |
+          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = OTHER_LDFLAGS="-L$(THEOS)/vendor/lib/iphone/roothide -L$(THEOS)/vendor/lib" |' Makefile
+          grep Bootstrap_XCODEFLAGS Makefile
 
       - name: Build
         env:
