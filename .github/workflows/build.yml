@@ -77,11 +77,11 @@ jobs:
           sed -i.bak 's|^make |gmake |' build.sh
           sed -i.bak 's|^make$|gmake|' build.sh
 
-      - name: Inject theos vendor lib paths into Bootstrap_XCODEFLAGS
+      - name: Add theos vendor lib paths to project.pbxproj LIBRARY_SEARCH_PATHS
         run: |
-          # add -L paths via OTHER_LDFLAGS so project's LIBRARY_SEARCH_PATHS stays intact
-          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = OTHER_LDFLAGS="$(inherited) -L$(THEOS)/vendor/lib/iphone/roothide -L$(THEOS)/vendor/lib" |' Makefile
-          grep Bootstrap_XCODEFLAGS Makefile
+          # extend in-tree paths so Xcode auto-Swift logic remains untouched
+          gsed -i 's|"$(PROJECT_DIR)/basebin/kexploit/kexploit-libs",|"$(PROJECT_DIR)/basebin/kexploit/kexploit-libs",\n\t\t\t\t\t"\$(THEOS)/vendor/lib/iphone/roothide",\n\t\t\t\t\t"\$(THEOS)/vendor/lib",|' Bootstrap.xcodeproj/project.pbxproj
+          grep -A 8 "LIBRARY_SEARCH_PATHS" Bootstrap.xcodeproj/project.pbxproj | head -20
 
       - name: Build
         env:
