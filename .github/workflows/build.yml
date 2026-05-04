@@ -79,8 +79,7 @@ jobs:
 
       - name: Inject theos vendor lib paths into Bootstrap_XCODEFLAGS
         run: |
-          # use $(inherited) so Xcode's auto-Swift LIBRARY_SEARCH_PATHS is preserved
-          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = LIBRARY_SEARCH_PATHS="$(inherited) $(THEOS)/vendor/lib/iphone/roothide $(THEOS)/vendor/lib" |' Makefile
+          sed -i.bak 's|Bootstrap_XCODEFLAGS = |Bootstrap_XCODEFLAGS = LIBRARY_SEARCH_PATHS="$(inherited) $(PROJECT_DIR) $(PROJECT_DIR)/basebin/common/lib $(PROJECT_DIR)/basebin/kexploit/kexploit-libs $(THEOS)/vendor/lib/iphone/roothide $(THEOS)/vendor/lib" |' Makefile
           grep Bootstrap_XCODEFLAGS Makefile
 
       - name: Build
