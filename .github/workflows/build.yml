@@ -23,6 +23,9 @@ jobs:
       - name: Use classic ld for dyldhook (tbd-v2 stub)
         run: sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
 
+      - name: Drop legacy xpc modulemap (SDK already provides it on iOS17+)
+        run: rm -f basebin/common/xpc/module.modulemap
+
       - name: Cache Theos + iOS SDKs
         id: cache-theos
         uses: actions/cache@v4
