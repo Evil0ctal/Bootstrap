@@ -66,14 +66,18 @@ jobs:
           sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
           # keep only xpc/private.h (Apple's private API decls); SDK provides everything else
           find basebin/common/xpc -mindepth 1 ! -name 'private.h' -delete
-          # rewrite xpc_private.h: pull basebin's private.h + bsm + extra decls used by basebin
+          # rewrite xpc_private.h: pull basebin's private.h + extra decls used by basebin.
+          # bsm/libbsm.h is not in iOS SDK — inline the audit_token_to_pid macro.
           cat > basebin/common/xpc_private.h <<'EOF'
           #ifndef ROOTHIDE_XPC_PRIVATE_H
           #define ROOTHIDE_XPC_PRIVATE_H
           #include <xpc/xpc.h>
           #include <xpc/private.h>
           #include <mach/mach.h>
-          #include <bsm/libbsm.h>
+          #include <bsm/audit.h>
+          #ifndef audit_token_to_pid
+          #define audit_token_to_pid(atoken) ((atoken).val[5])
+          #endif
           char *xpc_strerror (int);
           extern xpc_object_t xpc_mach_send_create(mach_port_t);
           extern mach_port_t xpc_mach_send_get_right(xpc_object_t);
