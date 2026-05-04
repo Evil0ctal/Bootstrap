@@ -72,6 +72,12 @@ jobs:
           F=basebin/appatch/realstore.cpp
           grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
 
+      - name: Use gmake (procursus) for theos xcodeproj.mk
+        run: |
+          sed -i.bak 's|^make |gmake |' build.sh
+          sed -i.bak 's|^make$|gmake|' build.sh
+          cat build.sh
+
       - name: Build
         env:
           ADDITIONAL_CFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
