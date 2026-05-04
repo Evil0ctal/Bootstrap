@@ -44,9 +44,11 @@ jobs:
           rm -rf tmp
 
       - name: Build
-        run: |
-          export THEOS=$HOME/theos
-          ./build.sh
+        env:
+          THEOS: /Users/runner/theos
+          ADDITIONAL_CFLAGS: -Wno-error=module-import-in-extern-c
+          ADDITIONAL_CCFLAGS: -Wno-error=module-import-in-extern-c
+        run: ./build.sh
 
       - name: Upload .tipa
         uses: actions/upload-artifact@v4
