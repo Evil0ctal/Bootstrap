@@ -56,6 +56,14 @@ jobs:
           XCSDK="$(xcrun --sdk iphoneos --show-sdk-path)"
           sudo rm -rf "$XCSDK/usr/include/xpc" "$XCSDK/usr/include/xpc.modulemap"
 
+      - name: Merge missing private frameworks from theos SDK into Xcode SDK
+        run: |
+          XCSDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          THEOS_SDK=$(ls -d "$THEOS"/sdks/iPhoneOS*.sdk 2>/dev/null | tail -n1)
+          if [ -n "$THEOS_SDK" ]; then
+            sudo cp -aRn "$THEOS_SDK/System/Library/PrivateFrameworks/." "$XCSDK/System/Library/PrivateFrameworks/" || true
+          fi
+
       - name: Use classic ld for dyldhook (tbd-v2 stub)
         run: sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
 
