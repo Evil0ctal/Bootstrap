@@ -31,10 +31,10 @@ jobs:
           F=basebin/appatch/realstore.cpp
           grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
 
-      - name: Build Dobby alongside repo (libdobby.a symlink target)
+      - name: Build Dobby (roothide fork) alongside repo
         run: |
           cd "$GITHUB_WORKSPACE/.."
-          git clone --depth 1 https://github.com/jmpews/Dobby Dobby-master
+          git clone --depth 1 https://github.com/roothide/Dobby Dobby-master
           cd Dobby-master
           cmake -B build/iphoneos/universal -G "Unix Makefiles" \
             -DCMAKE_SYSTEM_NAME=iOS \
