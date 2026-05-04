@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/theos
-          key: theos-roothide-${{ runner.os }}-v1
+          key: theos-roothide-${{ runner.os }}-ios16.5-v1
 
       - name: Install Theos + iPhoneOS16.5 SDK
         if: steps.cache-theos.outputs.cache-hit != 'true'
