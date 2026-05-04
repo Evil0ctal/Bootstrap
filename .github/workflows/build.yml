@@ -36,15 +36,20 @@ jobs:
           cd "$GITHUB_WORKSPACE/.."
           git clone --depth 1 https://github.com/roothide/Dobby Dobby-master
           cd Dobby-master
-          cmake -B build/iphoneos/universal -G "Unix Makefiles" \
-            -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_SYSROOT=iphoneos \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
-            -DCMAKE_OSX_ARCHITECTURES="arm64;arm64e" \
-            -DDOBBY_GENERATE_SHARED=OFF \
-            -DDOBBY_DEBUG=OFF
-          cmake --build build/iphoneos/universal --config Release
-          ls -la build/iphoneos/universal/libdobby.a
+          for ARCH in arm64 arm64e; do
+            cmake -B build/$ARCH -G "Unix Makefiles" \
+              -DCMAKE_SYSTEM_NAME=iOS \
+              -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+              -DCMAKE_OSX_SYSROOT=iphoneos \
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+              -DCMAKE_OSX_ARCHITECTURES=$ARCH \
+              -DDOBBY_GENERATE_SHARED=OFF \
+              -DDOBBY_DEBUG=OFF
+            cmake --build build/$ARCH --config Release
+          done
+          mkdir -p build/iphoneos/universal
+          lipo -create build/arm64/libdobby.a build/arm64e/libdobby.a -output build/iphoneos/universal/libdobby.a
+          lipo -info build/iphoneos/universal/libdobby.a
 
       - name: Cache Theos + iOS SDKs
         id: cache-theos
