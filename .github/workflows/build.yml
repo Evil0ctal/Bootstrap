@@ -31,22 +31,22 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/theos
-          key: theos-roothide-${{ runner.os }}-ios17.5-v1
+          key: theos-roothide-${{ runner.os }}-ios16.5-v2
 
-      - name: Install Theos + iPhoneOS17.5 SDK
+      - name: Install Theos + iPhoneOS16.5 SDK
         if: steps.cache-theos.outputs.cache-hit != 'true'
         run: |
           git clone --recursive https://github.com/roothide/theos "$HOME/theos"
           mkdir -p "$HOME/theos/sdks"
           cd "$HOME/theos/sdks"
           git clone --depth 1 https://github.com/theos/sdks.git tmp
-          mv tmp/iPhoneOS17.5.sdk .
+          mv tmp/iPhoneOS16.5.sdk .
           rm -rf tmp
 
       - name: Merge private frameworks into Xcode SDK
         run: |
           XCSDK_PF="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/PrivateFrameworks"
-          THEOS_PF="$HOME/theos/sdks/iPhoneOS17.5.sdk/System/Library/PrivateFrameworks"
+          THEOS_PF="$HOME/theos/sdks/iPhoneOS16.5.sdk/System/Library/PrivateFrameworks"
           sudo cp -aRn "$THEOS_PF"/. "$XCSDK_PF/"
           ls "$XCSDK_PF" | grep -c MobileContainerManager
 
