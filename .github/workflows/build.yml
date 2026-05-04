@@ -63,9 +63,10 @@ jobs:
       - name: Patch sources for iOS17 SDK / Xcode 15
         run: |
           sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
-          rm -f basebin/common/xpc/module.modulemap
-          rm -f basebin/common/xpc/session.h basebin/common/xpc/rich_error.h
-          sed -i.bak '/#include <xpc\/rich_error.h>/d; /#include <xpc\/session.h>/d' basebin/common/xpc/xpc.h
+          # keep only xpc/private.h (Apple's private API decls); SDK provides everything else
+          find basebin/common/xpc -mindepth 1 ! -name 'private.h' -delete
+          # xpc_private.h self-includes itself (header-guarded into nothing); redirect to private.h
+          sed -i.bak 's|#include <xpc_private.h>|#include <xpc/private.h>|' basebin/common/xpc_private.h
           F=basebin/appatch/realstore.cpp
           grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
 
