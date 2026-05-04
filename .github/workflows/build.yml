@@ -75,6 +75,10 @@ jobs:
         env:
           ADDITIONAL_CFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
           ADDITIONAL_CCFLAGS: "-Wno-error=module-import-in-extern-c -Wno-error=nonportable-include-path"
+          # Use classic ld so __mod_init_func is emitted (Xcode 15 ld-prime emits
+          # __init_offsets with bogus pointers when linking certain combos of
+          # static libs, causing dyld initializer crash on iOS 15.x).
+          ADDITIONAL_LDFLAGS: "-Wl,-ld_classic"
         run: |
           cd basebin
           ./build.sh
