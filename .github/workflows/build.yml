@@ -63,7 +63,9 @@ jobs:
       - name: Patch sources for iOS17 SDK / Xcode 15
         run: |
           sed -i.bak 's|^LDFLAGS = |LDFLAGS = -Wl,-ld_classic |' basebin/dyldhook/Makefile
-          rm -rf basebin/common/xpc
+          rm -f basebin/common/xpc/module.modulemap
+          rm -f basebin/common/xpc/session.h basebin/common/xpc/rich_error.h
+          sed -i.bak '/#include <xpc\/rich_error.h>/d; /#include <xpc\/session.h>/d' basebin/common/xpc/xpc.h
           F=basebin/appatch/realstore.cpp
           grep -q '<cassert>' "$F" || printf '#include <cassert>\n%s' "$(cat "$F")" > "$F"
 
